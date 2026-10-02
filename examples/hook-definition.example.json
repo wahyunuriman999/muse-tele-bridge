@@ -1,0 +1,1 @@
+{"delivery":{"surface":"side_chat","to":"<your-chat-id>"},"enabled":true,"id":"telegram-inbox","poll_interval_secs":30,"presentation_locale":"id-ID","prompt":"PASTE the filled-in worker prompt from bridge/worker-prompt.template.md here","script_path":"~/hooks/scripts/telegram-inbox.sh","script_timeout_secs":60,"version":1}

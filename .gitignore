@@ -1,0 +1,6 @@
+# Secrets — never commit
+.config/
+*.token
+*.key
+config
+.env
