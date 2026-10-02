@@ -34,6 +34,17 @@ if [[ -z "${ALLOWED_USER_ID:-}" ]]; then
 fi
 
 API="https://api.telegram.org"
+
+# Single-poller guard: poll interval can be shorter than the max poll
+# duration (long-poll timeout + curl max-time), so consecutive ticks may
+# overlap and 409-conflict on getUpdates, causing duplicate/delayed
+# delivery. If another instance is polling, skip this tick silently.
+POLL_LOCK="$HOME/hooks/state/telegram-inbox-poll.lock"
+exec 9>"$POLL_LOCK"
+if ! flock -n 9; then
+  silent "poll overlapped by another instance, skipping" '{}'
+fi
+
 OFFSET="$(hook_state_get | jq -r '.offset // 0')"
 
 # Delivery guarantee: the worker owns the update offset (it advances the
@@ -131,4 +142,5 @@ log "telegram-inbox: new message(s) from allowed user" "{\"count\":${N}}"
 touch "$LOCK_FILE"
 wake "new Telegram message" \
   "$(jq -cn --argjson cid "$CHAT_ID" --argjson msgs "$NEW_MSGS" \
-    '{chat_id:$cid, messages:$msgs}')"
+    --arg now "$(date '+%Y-%m-%d %H:%M %Z')" \
+    '{chat_id:$cid, messages:$msgs, now:$now}')"
