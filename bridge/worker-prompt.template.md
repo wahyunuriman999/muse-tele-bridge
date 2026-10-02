@@ -34,9 +34,9 @@ anywhere):
   note to stdout (default language: Indonesian).
 
 Do this:
-0. FIRST: touch ~/hooks/state/telegram-inbox.lock — this tells the hook a
-   worker is processing, so it won't double-wake you. (This must be the
-   same directory your hook state is stored in.)
+0. FIRST: the hook already created ~/hooks/state/telegram-inbox.lock when
+   waking you (so it won't double-wake you) — leave it alone until the very
+   end. (This must be the same directory your hook state is stored in.)
 1. Read the new message(s) from the wake event payload.
 2. Handle media:
    - photo_file_id: tg-download.sh it to /tmp/tg_<message_id>.jpg, then read

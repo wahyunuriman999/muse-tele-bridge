@@ -123,6 +123,12 @@ fi
 
 CHAT_ID="$(printf '%s' "$NEW_MSGS" | jq -r '.[0].chat_id')"
 log "telegram-inbox: new message(s) from allowed user" "{\"count\":${N}}"
+# Claim the lock HERE in the hook (not in the worker): a woken worker can
+# take 30-60s+ to start, longer than the poll interval — creating the lock
+# at wake time closes the race where the next poll re-wakes before the
+# worker exists. The worker removes the lock when done; a stale lock is
+# cleared on the next poll so a dead worker's messages are redelivered.
+touch "$LOCK_FILE"
 wake "new Telegram message" \
   "$(jq -cn --argjson cid "$CHAT_ID" --argjson msgs "$NEW_MSGS" \
     '{chat_id:$cid, messages:$msgs}')"
