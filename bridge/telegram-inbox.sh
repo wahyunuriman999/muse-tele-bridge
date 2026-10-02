@@ -82,6 +82,8 @@ NEW_MSGS="$(printf '%s' "$RESP" | jq -c --argjson uid "$ALLOWED_USER_ID" \
        sticker_emoji: .message.sticker.emoji,
        location_lat: .message.location.latitude,
        location_lon: .message.location.longitude,
+       reply_to_text: .message.reply_to_message.text,
+       reply_to_caption: .message.reply_to_message.caption,
        date: .message.date}]')"
 
 N="$(printf '%s' "$NEW_MSGS" | jq 'length')"
