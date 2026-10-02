@@ -36,6 +36,23 @@ fi
 API="https://api.telegram.org"
 OFFSET="$(hook_state_get | jq -r '.offset // 0')"
 
+# Delivery guarantee: the worker owns the update offset (it advances the
+# offset past each message only after that message's reply is confirmed
+# sent). If a lock file exists and is fresh, a worker is still processing —
+# stay silent to avoid a double wake. A stale lock means the previous worker
+# died mid-processing; clear it so its messages are redelivered (at-least-
+# once: a duplicate reply beats a lost one).
+# NOTE: this must be the same directory hook state is stored in.
+LOCK_FILE="$HOME/hooks/state/telegram-inbox.lock"
+if [[ -f "$LOCK_FILE" ]]; then
+  LOCK_AGE=$(( $(date +%s) - $(stat -c %Y "$LOCK_FILE") ))
+  if [[ "$LOCK_AGE" -lt 300 ]]; then
+    silent "worker still processing" '{}'
+  fi
+  log "telegram-inbox: clearing stale lock" '{}'
+  rm -f "$LOCK_FILE"
+fi
+
 RESP="$(curl -s --fail --max-time 45 \
   "${API}/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${OFFSET}&timeout=25" 2>/dev/null)" || {
   log "telegram-inbox: getUpdates fetch failed" '{}'
@@ -54,9 +71,7 @@ if [[ "$COUNT" -eq 0 ]]; then
   silent "no updates" '{}'
 fi
 
-# Advance past everything seen (dry-run safe: write skipped when dry).
-MAX_ID="$(printf '%s' "$RESP" | jq '[.result[].update_id] | max')"
-hook_state_set "$(jq -cn --argjson off "$((MAX_ID + 1))" '{offset:$off}')"
+# (No unconditional offset advance here — see below.)
 
 # New text, photo, voice, document, video, sticker, or location messages
 # from the allowed user only.
@@ -68,7 +83,8 @@ NEW_MSGS="$(printf '%s' "$RESP" | jq -c --argjson uid "$ALLOWED_USER_ID" \
                   or .message.document != null or .message.video != null
                   or .message.video_note != null or .message.sticker != null
                   or .message.location != null))
-    | {message_id: .message.message_id, chat_id: .message.chat.id,
+    | {update_id: .update_id,
+       message_id: .message.message_id, chat_id: .message.chat.id,
        text: .message.text, caption: .message.caption,
        photo_file_id: (if .message.photo != null
                        then (.message.photo | last | .file_id)
@@ -88,7 +104,21 @@ NEW_MSGS="$(printf '%s' "$RESP" | jq -c --argjson uid "$ALLOWED_USER_ID" \
 
 N="$(printf '%s' "$NEW_MSGS" | jq 'length')"
 if [[ "$N" -eq 0 ]]; then
+  # Nothing wake-worthy: safe to skip everything seen.
+  MAX_ID="$(printf '%s' "$RESP" | jq '[.result[].update_id] | max')"
+  hook_state_set "$(jq -cn --argjson off "$((MAX_ID + 1))" '{offset:$off}')"
   silent "no new messages from allowed user" "{\"seen\":${COUNT}}"
+fi
+
+# The worker advances the offset past each message only after its reply is
+# confirmed sent ("ok":true), so unconfirmed messages stay pending and are
+# redelivered instead of silently lost. Advance here only past updates OLDER
+# than the oldest wake-worthy one, so a trailing non-matching update can
+# never pull the offset over an unconfirmed message. (Dry-run safe: write
+# skipped when dry.)
+MIN_MID="$(printf '%s' "$NEW_MSGS" | jq '[.[].update_id] | min')"
+if [[ "$MIN_MID" -gt "$OFFSET" ]]; then
+  hook_state_set "$(jq -cn --argjson off "$MIN_MID" '{offset:$off}')"
 fi
 
 CHAT_ID="$(printf '%s' "$NEW_MSGS" | jq -r '.[0].chat_id')"

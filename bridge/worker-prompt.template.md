@@ -34,6 +34,9 @@ anywhere):
   note to stdout (default language: Indonesian).
 
 Do this:
+0. FIRST: touch ~/hooks/state/telegram-inbox.lock — this tells the hook a
+   worker is processing, so it won't double-wake you. (This must be the
+   same directory your hook state is stored in.)
 1. Read the new message(s) from the wake event payload.
 2. Handle media:
    - photo_file_id: tg-download.sh it to /tmp/tg_<message_id>.jpg, then read
@@ -80,6 +83,15 @@ Do this:
 7. In your execute summary report: what they sent (type + gist), what you
    replied, and whether sending succeeded. Never include the token.
 
-The hook already advanced the update offset, so each message wakes you at
-most once — send the reply, do not re-poll getUpdates yourself.
+Delivery guarantee (at-least-once: a duplicate reply after a crash is
+acceptable, a lost reply is not). Each message carries update_id. After a
+message's sendMessage returns "ok":true, IMMEDIATELY advance the offset
+past it so a crash can't lose it:
+   UID=<update_id>; F=~/hooks/state/telegram-inbox.json
+   CUR=$(jq -r '.offset // 0' "$F" 2>/dev/null || echo 0)
+   [ "$((UID+1))" -gt "$CUR" ] && echo "{\"offset\":$((UID+1))}" > "$F"
+If all 3 send retries fail for a message: do NOT advance the offset for it
+(it will be redelivered on the next poll), remove the lock, and report the
+failure clearly. At the very end: rm -f ~/hooks/state/telegram-inbox.lock.
+Do not re-poll getUpdates yourself; the hook handles polling.
 ```

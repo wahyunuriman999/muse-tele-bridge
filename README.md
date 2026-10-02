@@ -37,8 +37,12 @@ Only you can use it — messages from anyone else are fully ignored.
 - The worker (Muse) reads the message → does the work (including file
   downloads & voice-note transcription) → replies via the Bot API to the
   same chat.
-- The update offset is stored in hook state, so each message is processed
-  exactly once.
+- Delivery is **at-least-once**: the worker advances the update offset past
+  each message only after its reply is confirmed sent (`"ok":true`, with up
+  to 3 retries on transient network failure). A processing lock prevents
+  double-wakes; a stale lock is cleared so a crashed worker's messages are
+  redelivered instead of silently lost. A duplicate reply after a crash is
+  possible but a lost reply is not.
 
 Supported: text, photos + captions, voice notes/audio (+auto transcription),
 documents (PDF/Word/Excel/etc.), video, stickers, locations.
