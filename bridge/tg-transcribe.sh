@@ -28,6 +28,8 @@ if [[ ! -d "$STT_MODEL_DIR" ]]; then
 fi
 WAV="/tmp/tg_stt_$$.wav"
 ffmpeg -y -loglevel error -i "$IN" -ar 16000 -ac 1 "$WAV"
+# Export for the Python heredoc below (it reads os.environ, not shell vars).
+export STT_MODEL_DIR
 "$STT_PYTHON" - "$WAV" "$LANG" << 'EOF'
 import os, sys, wave
 import numpy as np

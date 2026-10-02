@@ -18,7 +18,8 @@ echo "  1. Bot token  — chat @BotFather, /newbot, copy the token."
 echo "  2. Your user ID — chat @userinfobot, copy the 'Id' number."
 echo
 
-read -rp "Bot token: " BOT_TOKEN
+read -rsp "Bot token (input hidden): " BOT_TOKEN
+echo
 [[ -z "$BOT_TOKEN" ]] && { echo "Token cannot be empty." >&2; exit 1; }
 
 read -rp "Your Telegram user ID: " USER_ID
@@ -44,9 +45,11 @@ chmod 600 "$CONFIG_FILE"
 echo "Wrote $CONFIG_FILE (mode 600)."
 
 mkdir -p "$BRIDGE_DIR" "$HOOK_SCRIPT_DIR"
-cp "$REPO_DIR/bridge/tg-download.sh" "$REPO_DIR/bridge/tg-transcribe.sh" "$BRIDGE_DIR/"
+cp "$REPO_DIR/bridge/tg-download.sh" "$REPO_DIR/bridge/tg-transcribe.sh" \
+   "$REPO_DIR/bridge/telegram-monitor.sh" "$BRIDGE_DIR/"
 cp "$REPO_DIR/bridge/telegram-inbox.sh" "$HOOK_SCRIPT_DIR/"
-chmod +x "$BRIDGE_DIR"/tg-*.sh "$HOOK_SCRIPT_DIR/telegram-inbox.sh"
+chmod +x "$BRIDGE_DIR"/tg-*.sh "$BRIDGE_DIR"/telegram-monitor.sh \
+         "$HOOK_SCRIPT_DIR/telegram-inbox.sh"
 echo "Installed helpers to $BRIDGE_DIR"
 echo "Installed hook script to $HOOK_SCRIPT_DIR/telegram-inbox.sh"
 echo
