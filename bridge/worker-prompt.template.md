@@ -58,8 +58,15 @@ Do this:
    TOKEN="$(cat {{CONFIG_FILE}} | grep TELEGRAM_BOT_TOKEN | cut -d'\"' -f2)"
    curl -s --max-time 20 "https://api.telegram.org/bot${TOKEN}/sendChatAction" \
      -d "chat_id=<chat_id>" -d "action=typing"
-   curl -s --max-time 20 "https://api.telegram.org/bot${TOKEN}/sendMessage" \
-     -d "chat_id=<chat_id>" --data-urlencode "text=<your reply>"
+   for i in 1 2 3; do
+     RESP=$(curl -s --max-time 20 "https://api.telegram.org/bot${TOKEN}/sendMessage" \
+       -d "chat_id=<chat_id>" --data-urlencode "text=<your reply>")
+     echo "$RESP" | grep -q '"ok":true' && break
+     [ $i -lt 3 ] && sleep $((i*5))
+   done
+   The network can drop transiently — ALWAYS retry sendMessage up to 3 times
+   with backoff (5s, 10s) and verify "ok":true in the response. Only report a
+   send failure after all 3 attempts fail; never silently drop a reply.
    Keep each message under 4000 characters; split longer replies into
    sequential sendMessage calls, in order. Plain text only (no parse_mode).
 5b. Cleanup: after processing, delete any /tmp/tg_* files you downloaded —
