@@ -134,6 +134,28 @@ To catch this automatically, run `telegram-monitor.sh` every 2 minutes via
 your scheduler and alert when it reports pending messages. A monitor that
 only watches is included; wiring it to your alerting is up to you.
 
+### Fallback pattern: scheduled manual replies
+
+If hook workers are down for an extended period, a scheduled job can act
+as a temporary responder:
+
+1. Schedule `telegram-monitor.sh` (or equivalent `getUpdates` poll) every
+   1–2 minutes.
+2. When it reports pending messages, reply manually via `sendMessage`
+   (with the 3x retry loop from the worker prompt), then advance the
+   offset and clear the lock — same steps as manual recovery above.
+3. Remove the fallback once hook workers recover (you'll see the offset
+   advancing on its own and the lock being cleaned up).
+
+This keeps the bot answering even when the worker subsystem is degraded.
+
+### Does the bot need me to keep chat open?
+
+No. The hook polls on its own schedule and workers spawn in the
+background — replies work whether or not you have any chat open. The only
+thing that stops everything is the runtime/VM itself going down, which is
+outside this bridge's control.
+
 ### Design notes (learned the hard way)
 
 - **The hook claims the processing lock at wake time, not the worker.**
