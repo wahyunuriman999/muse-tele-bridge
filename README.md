@@ -61,7 +61,7 @@ copy your numeric **Id**.
 **3. Install.**
 
 ```bash
-git clone https://github.com/<username>/muse-tele-bridge
+git clone https://github.com/wahyunuriman999/muse-tele-bridge
 cd muse-tele-bridge
 bash install.sh
 ```
