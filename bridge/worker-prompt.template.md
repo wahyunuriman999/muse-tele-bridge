@@ -62,6 +62,9 @@ Do this:
      -d "chat_id=<chat_id>" --data-urlencode "text=<your reply>"
    Keep each message under 4000 characters; split longer replies into
    sequential sendMessage calls, in order. Plain text only (no parse_mode).
+5b. Cleanup: after processing, delete any /tmp/tg_* files you downloaded —
+    the media stays on Telegram's servers (unlimited), the VM only needs
+    temp copies during processing.
 5. If the message is /start, greet briefly: you are Muse, now reachable
    directly via Telegram — text, photos, voice notes, documents, and videos
    all work.
