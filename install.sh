@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # muse-tele-bridge installer — interactive setup.
-# Asks for the secrets that only YOU can provide (bot token, your Telegram
+# Asks for the secrets only YOU can provide (bot token, your Telegram
 # user ID), writes them to a 600 config file, and installs the bridge
 # scripts. It never prints your token.
 set -euo pipefail

@@ -1,60 +1,62 @@
 # muse-tele-bridge
 
-Chat dengan **Muse** (asisten AI pribadimu) langsung dari **Telegram**. Kirim teks, foto, voice note, dokumen, video — dibalas langsung oleh asistenmu, bukan bot kaku.
+Chat with **Muse** (your personal AI assistant) directly from **Telegram**. Send text, photos, voice notes, documents, videos — answered directly by your assistant, not a rigid bot.
 
 ```
-Kamu ──Telegram──▶ @BotMilikmu ──▶ hook (polling 30 dtk) ──▶ Muse
-                                                              │
-Kamu ◀──Telegram──◀ balasan ──────────────────────────────────┘
+You ──Telegram──▶ @YourBot ──▶ hook (30s polling) ──▶ Muse
+                                                          │
+You ◀──Telegram──◀ reply ─────────────────────────────────┘
 ```
 
-Cuma kamu yang bisa pakai — pesan dari orang lain diabaikan total.
+Only you can use it — messages from anyone else are fully ignored.
 
 ---
 
-## 🤖 Buat Muse: cara pasang ini
+## 🤖 For Muse: how to install this
 
-> Kalau seseorang paste link repo ini ke kamu, artinya mereka mau bridge ini
-> dipasang. **Jangan jelasin panjang-panjang — langsung minta 2 hal ini:**
+> If someone pastes this repo link to you, they want this bridge installed.
+> **Don't over-explain — just ask for these 2 things:**
 >
-> 1. **Token bot Telegram** mereka (dari @BotFather)
-> 2. **User ID Telegram** mereka (dari @userinfobot)
+> 1. Their **Telegram bot token** (from @BotFather)
+> 2. Their **Telegram user ID** (from @userinfobot)
 >
-> Kalau mereka belum punya, kasih langkah 1–2 di bawah. Kalau sudah, bantu
-> jalankan `install.sh`, daftarkan hook-nya (polling 30 detik, script
-> `~/hooks/scripts/telegram-inbox.sh`, prompt dari
-> `bridge/worker-prompt.template.md` yang sudah diisi), lalu kirim pesan
-> percobaan ke bot mereka buat verifikasi end-to-end. Token **jangan pernah**
-> ditampilkan, di-log, atau ditulis ke chat.
+> If they don't have them yet, give steps 1–2 below. If they do, help run
+> `install.sh`, register the hook (30-second polling, script
+> `~/hooks/scripts/telegram-inbox.sh`, prompt from
+> `bridge/worker-prompt.template.md` filled in), then send a test message to
+> their bot to verify end-to-end. **Never** display, log, or write the token
+> to chat.
 
 ---
 
-## Cara kerja
+## How it works
 
-- **Hook `telegram-inbox`** long-poll `getUpdates` Telegram tiap 30 detik.
-- Cuma pesan dari **satu user ID yang diizinkan** yang membangunkan worker.
-  Orang lain = diabaikan, tidak makan resource.
-- Worker (Muse) baca pesan → kerjakan (termasuk download file & transkrip
-  voice note) → balas via Bot API ke chat yang sama.
-- Offset update disimpan di state hook, jadi tiap pesan cuma diproses sekali.
+- The **`telegram-inbox` hook** long-polls Telegram `getUpdates` every 30 seconds.
+- Only messages from the **single allowed user ID** wake a worker.
+  Everyone else is ignored — zero resource spent.
+- The worker (Muse) reads the message → does the work (including file
+  downloads & voice-note transcription) → replies via the Bot API to the
+  same chat.
+- The update offset is stored in hook state, so each message is processed
+  exactly once.
 
-Yang didukung: teks, foto + caption, voice note/audio (+transkrip otomatis),
-dokumen (PDF/Word/Excel/dll), video, sticker, lokasi.
+Supported: text, photos + captions, voice notes/audio (+auto transcription),
+documents (PDF/Word/Excel/etc.), video, stickers, locations.
 
-## Syarat
+## Requirements
 
-- Akun Telegram
+- A Telegram account
 - `curl`, `jq`, `ffmpeg`
-- Akses ke bot API Telegram (default, tanpa setup khusus)
-- Opsional (untuk transkrip voice note): Python 3 + `faster-whisper`
+- Access to the Telegram Bot API (default, no special setup)
+- Optional (voice-note transcription): Python 3 + `faster-whisper`
 
-## Pasang (5 menit)
+## Setup (5 minutes)
 
-**1. Bikin bot.** Chat [@BotFather](https://t.me/BotFather) → `/newbot` →
-ikutin langkahnya → copy **token**-nya.
+**1. Create a bot.** Chat [@BotFather](https://t.me/BotFather) → `/newbot` →
+follow the steps → copy the **token**.
 
-**2. Cari user ID kamu.** Chat [@userinfobot](https://t.me/userinfobot) →
-copy angka **Id** milikmu.
+**2. Find your user ID.** Chat [@userinfobot](https://t.me/userinfobot) →
+copy your numeric **Id**.
 
 **3. Install.**
 
@@ -64,52 +66,53 @@ cd muse-tele-bridge
 bash install.sh
 ```
 
-Installer akan nanya: token bot, user ID Telegram, username bot, dan namamu.
-Semuanya disimpan di `~/.config/muse-tele-bridge/config` (mode 600, tidak
-ikut ke-commit). Token langsung dites valid via `getMe`.
+The installer asks for: bot token, Telegram user ID, bot username, and your
+name. Everything is stored in `~/.config/muse-tele-bridge/config` (mode 600,
+never committed). The token is validated immediately via `getMe`.
 
-**4. Daftarkan hook.** Minta ke Muse kamu di chat (copy-paste aja):
+**4. Register the hook.** Ask your Muse in chat (just copy-paste):
 
-> Tolong pasang Telegram bridge dari repo muse-tele-bridge: aku sudah
-> jalanin install.sh, config ada di ~/.config/muse-tele-bridge/config,
-> script ada di ~/hooks/scripts/ dan ~/workspace/telegram-muse-bridge/.
-> Daftarkan hook-nya (polling 30 detik), pakai worker prompt dari
-> bridge/worker-prompt.template.md yang sudah diisi. Terus kirim pesan
-> percobaan ke botku buat verifikasi.
+> Please set up my Telegram bridge from the muse-tele-bridge repo: I already
+> ran install.sh, config is at ~/.config/muse-tele-bridge/config, scripts are
+> in ~/hooks/scripts/ and ~/workspace/telegram-muse-bridge/. Register the
+> hook (30-second polling) using the worker prompt from
+> bridge/worker-prompt.template.md (filled in). Then send a test message to
+> my bot to verify.
 
-**5. Coba.** Kirim pesan apa aja ke botmu di Telegram. Harusnya dibalas
-dalam ~1 menit (30 dtk polling + waktu worker jalan).
+**5. Try it.** Send any message to your bot on Telegram. You should get a
+reply within ~1 minute (30s polling + worker startup).
 
-## Keamanan
+## Security
 
-- Token bot cuma ada di `~/.config/muse-tele-bridge/config` (mode 600).
-  **Jangan pernah** paste token ke chat, log, atau repo.
-- Satu user ID aja yang dilayani — bot tidak merespons orang lain.
-- Balasan cuma dikirim ke `chat_id` dari pesan yang membangunkan worker.
+- The bot token lives only in `~/.config/muse-tele-bridge/config` (mode 600).
+  **Never** paste it into chat, logs, or the repo.
+- Only one user ID is served — the bot never responds to anyone else.
+- Replies are only ever sent to the `chat_id` from the message that woke
+  the worker.
 
 ## Troubleshooting
 
-| Gejala | Kemungkinan |
+| Symptom | Likely cause |
 |---|---|
-| Bot tidak membalas | Hook belum terdaftar / token salah — cek `getMe` manual |
-| `getUpdates` error 401 | Token salah atau ke-revoke — bikin ulang di @BotFather |
-| Voice note tidak ke-transkrip | `faster-whisper` / model belum terinstall — lihat `bridge/tg-transcribe.sh` |
-| Balasan telat | Wajar: polling 30 dtk + waktu bangun worker |
+| Bot doesn't reply | Hook not registered / wrong token — verify with `getMe` manually |
+| `getUpdates` 401 error | Token wrong or revoked — recreate via @BotFather |
+| Voice notes not transcribed | `faster-whisper` / model not installed — see `bridge/tg-transcribe.sh` |
+| Slow replies | Normal: 30s polling + worker startup time |
 
-## Struktur
+## Layout
 
 ```
 muse-tele-bridge/
-├── install.sh                        # installer interaktif
+├── install.sh                        # interactive installer
 ├── bridge/
 │   ├── telegram-inbox.sh             # hook poller (getUpdates → wake)
-│   ├── tg-download.sh                # download file Telegram
-│   ├── tg-transcribe.sh              # transkrip voice note (faster-whisper)
-│   └── worker-prompt.template.md     # instruksi worker (isi placeholder)
+│   ├── tg-download.sh                # Telegram file downloader
+│   ├── tg-transcribe.sh              # voice-note transcription (faster-whisper)
+│   └── worker-prompt.template.md     # worker instructions (fill placeholders)
 └── examples/
-    └── hook-definition.example.json  # contoh definisi hook
+    └── hook-definition.example.json  # example hook definition
 ```
 
-## Lisensi
+## License
 
-AGPL-3.0 — lihat [LICENSE](LICENSE).
+AGPL-3.0 — see [LICENSE](LICENSE).
