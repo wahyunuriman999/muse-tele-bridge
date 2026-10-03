@@ -87,9 +87,9 @@ Delivery guarantee (at-least-once: a duplicate reply after a crash is
 acceptable, a lost reply is not). Each message carries update_id. After a
 message's sendMessage returns "ok":true, IMMEDIATELY advance the offset
 past it so a crash can't lose it:
-   UID=<update_id>; F=~/hooks/state/telegram-inbox.json
+   MSG_UID=<update_id>; F=~/hooks/state/telegram-inbox.json
    CUR=$(jq -r '.offset // 0' "$F" 2>/dev/null || echo 0)
-   [ "$((UID+1))" -gt "$CUR" ] && echo "{\"offset\":$((UID+1))}" > "$F"
+   [ "$((MSG_UID+1))" -gt "$CUR" ] && echo "{\"offset\":$((MSG_UID+1))}" > "$F"
 If all 3 send retries fail for a message: do NOT advance the offset for it
 (it will be redelivered on the next poll), remove the lock, and report the
 failure clearly. At the very end: rm -f ~/hooks/state/telegram-inbox.lock.
